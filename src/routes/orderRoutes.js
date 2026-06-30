@@ -3,15 +3,21 @@ import {
   createOrder,
   getMyOrders,
   updateOrderStatus,
+  payOrder,
+  getAllOrders,
 } from "../controllers/orderController.js";
-import { protect } from "../middleware/authMiddleware.js";
+import { protect, admin } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
 // 주문은 모두 로그인 필요
 router.use(protect);
 
+// 관리자: 모든 주문 조회 (구체적인 경로를 :id 패턴보다 먼저 선언)
+router.get("/all", admin, getAllOrders);
+
 router.route("/").post(createOrder).get(getMyOrders);
-router.patch("/:id/status", updateOrderStatus); // 주문 상태 변경
+router.post("/:id/pay", payOrder); // 결제
+router.patch("/:id/status", updateOrderStatus); // 상태 변경(본인/관리자)
 
 export default router;

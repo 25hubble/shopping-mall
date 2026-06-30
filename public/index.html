@@ -20,6 +20,8 @@
       <button class="tab active" data-tab="products">상품</button>
       <button class="tab" data-tab="cart">장바구니 <span id="cart-count">0</span></button>
       <button class="tab" data-tab="orders">주문내역</button>
+      <!-- 관리자에게만 보이는 탭 (JS가 표시) -->
+      <button class="tab hidden" data-tab="admin" id="admin-tab">🛠 관리자</button>
     </nav>
 
     <main>
@@ -43,6 +45,13 @@
       <section id="tab-orders" class="tab-panel">
         <h2>주문 내역</h2>
         <div id="order-list"></div>
+      </section>
+
+      <!-- 관리자: 전체 주문 처리 -->
+      <section id="tab-admin" class="tab-panel">
+        <h2>🛠 관리자 — 전체 주문 처리</h2>
+        <p class="admin-hint">유저별로 주문을 확인하고 상태를 변경할 수 있습니다.</p>
+        <div id="admin-list"></div>
       </section>
     </main>
 

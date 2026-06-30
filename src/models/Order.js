@@ -30,6 +30,9 @@ const orderSchema = new mongoose.Schema(
       enum: ["pending", "paid", "shipped", "delivered", "cancelled"],
       default: "pending", // 결제 대기
     },
+    // 결제 정보 (모의 결제)
+    paidAt: { type: Date }, // 결제 완료 시각
+    paymentMethod: { type: String }, // 결제 수단 (예: card)
   },
   { timestamps: true }
 );

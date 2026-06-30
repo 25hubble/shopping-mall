@@ -5,6 +5,8 @@ import mongoose from "mongoose";
 import { connectDB } from "../src/config/db.js";
 import Product from "../src/models/Product.js";
 
+// 이미지는 loremflickr에서 키워드에 맞는 사진을 가져온다.
+// ?lock=<숫자> 를 붙이면 상품마다 항상 같은 이미지가 나온다(매번 안 바뀜).
 const sampleProducts = [
   {
     name: "무선 블루투스 이어폰",
@@ -12,6 +14,7 @@ const sampleProducts = [
     price: 89000,
     stock: 50,
     category: "전자기기",
+    imageUrl: "https://loremflickr.com/400/400/earphones?lock=11",
   },
   {
     name: "기계식 키보드",
@@ -19,6 +22,7 @@ const sampleProducts = [
     price: 120000,
     stock: 30,
     category: "전자기기",
+    imageUrl: "https://loremflickr.com/400/400/keyboard?lock=22",
   },
   {
     name: "면 100% 반팔 티셔츠",
@@ -26,6 +30,7 @@ const sampleProducts = [
     price: 19900,
     stock: 200,
     category: "의류",
+    imageUrl: "https://loremflickr.com/400/400/tshirt?lock=33",
   },
   {
     name: "스테인리스 텀블러 500ml",
@@ -33,6 +38,7 @@ const sampleProducts = [
     price: 25000,
     stock: 80,
     category: "주방용품",
+    imageUrl: "https://loremflickr.com/400/400/tumbler?lock=44",
   },
   {
     name: "아로마 디퓨저",
@@ -40,6 +46,7 @@ const sampleProducts = [
     price: 34000,
     stock: 45,
     category: "생활용품",
+    imageUrl: "https://loremflickr.com/400/400/diffuser?lock=55",
   },
 ];
 

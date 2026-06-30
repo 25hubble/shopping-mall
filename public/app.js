@@ -38,13 +38,17 @@ function toast(msg) {
 function renderAuthArea() {
   const area = document.getElementById("auth-area");
   if (user) {
-    area.innerHTML = `<span>👤 ${user.name}님</span>
+    const adminMark = user.role === "admin" ? " (관리자)" : "";
+    area.innerHTML = `<span>👤 ${user.name}님${adminMark}</span>
       <button class="ghost" id="logout-btn">로그아웃</button>`;
     document.getElementById("logout-btn").onclick = logout;
   } else {
     area.innerHTML = `<button class="primary" id="login-open">로그인 / 회원가입</button>`;
     document.getElementById("login-open").onclick = openModal;
   }
+  // 관리자 탭은 admin 역할일 때만 표시
+  const adminTab = document.getElementById("admin-tab");
+  adminTab.classList.toggle("hidden", !(user && user.role === "admin"));
 }
 
 function logout() {
@@ -71,6 +75,8 @@ async function loadProducts() {
       .map(
         (p) => `
       <div class="card">
+        <img class="product-img" src="${p.imageUrl || ""}" alt="${p.name}"
+             onerror="this.style.visibility='hidden'" />
         <span class="category">${p.category}</span>
         <span class="name">${p.name}</span>
         <span class="desc">${p.description || ""}</span>
@@ -205,6 +211,11 @@ async function loadOrders() {
               `<option value="${s}" ${s === o.status ? "selected" : ""}>${STATUS_LABEL[s]}</option>`
           )
           .join("");
+        // 결제 대기 상태면 결제 버튼, 아니면 상태 변경 드롭다운
+        const action =
+          o.status === "pending"
+            ? `<button class="pay-btn" data-pay="${o._id}">결제하기</button>`
+            : `<select data-order="${o._id}">${options}</select>`;
         return `
         <div class="order">
           <div class="order-head">
@@ -214,7 +225,7 @@ async function loadOrders() {
           <div>${itemsText}</div>
           <div style="margin-top:8px;display:flex;justify-content:space-between;align-items:center;">
             <strong>${o.totalPrice.toLocaleString()}원</strong>
-            <select data-order="${o._id}">${options}</select>
+            ${action}
           </div>
         </div>`;
       })
@@ -222,6 +233,9 @@ async function loadOrders() {
 
     box.querySelectorAll("select[data-order]").forEach((sel) => {
       sel.onchange = () => updateOrderStatus(sel.dataset.order, sel.value);
+    });
+    box.querySelectorAll("button[data-pay]").forEach((btn) => {
+      btn.onclick = () => payOrder(btn.dataset.pay);
     });
   } catch (err) {
     box.innerHTML = `<p class="empty">${err.message}</p>`;
@@ -235,10 +249,96 @@ async function updateOrderStatus(orderId, status) {
       body: JSON.stringify({ status }),
     });
     toast("주문 상태를 변경했습니다.");
+    // 현재 보고 있는 탭을 새로고침
+    if (document.getElementById("tab-admin").classList.contains("active")) {
+      loadAdminOrders();
+    } else {
+      loadOrders();
+    }
+  } catch (err) {
+    toast(err.message);
+  }
+}
+
+// 결제하기 (모의 결제)
+async function payOrder(orderId) {
+  try {
+    await api(`/orders/${orderId}/pay`, {
+      method: "POST",
+      body: JSON.stringify({ paymentMethod: "card" }),
+    });
+    toast("결제가 완료되었습니다! 💳");
     loadOrders();
   } catch (err) {
     toast(err.message);
-    loadOrders();
+  }
+}
+
+// ===== 관리자: 전체 주문 처리 =====
+async function loadAdminOrders() {
+  const box = document.getElementById("admin-list");
+  try {
+    const orders = await api("/orders/all");
+    if (orders.length === 0) {
+      box.innerHTML = `<p class="empty">주문이 없습니다.</p>`;
+      return;
+    }
+
+    // 유저별로 주문을 묶는다
+    const groups = {};
+    orders.forEach((o) => {
+      const key = o.user ? o.user._id : "unknown";
+      if (!groups[key]) {
+        groups[key] = {
+          name: o.user ? o.user.name : "(탈퇴/알수없음)",
+          email: o.user ? o.user.email : "",
+          orders: [],
+        };
+      }
+      groups[key].orders.push(o);
+    });
+
+    box.innerHTML = Object.values(groups)
+      .map((g) => {
+        const orderHtml = g.orders
+          .map((o) => {
+            const date = new Date(o.createdAt).toLocaleString("ko-KR");
+            const itemsText = o.items
+              .map((i) => `${i.name} × ${i.quantity}`)
+              .join(", ");
+            const options = Object.keys(STATUS_LABEL)
+              .map(
+                (s) =>
+                  `<option value="${s}" ${s === o.status ? "selected" : ""}>${STATUS_LABEL[s]}</option>`
+              )
+              .join("");
+            return `
+            <div class="order">
+              <div class="order-head">
+                <span>${date}</span>
+                <span class="badge ${o.status}">${STATUS_LABEL[o.status]}</span>
+              </div>
+              <div>${itemsText}</div>
+              <div style="margin-top:8px;display:flex;justify-content:space-between;align-items:center;">
+                <strong>${o.totalPrice.toLocaleString()}원</strong>
+                <select data-order="${o._id}">${options}</select>
+              </div>
+            </div>`;
+          })
+          .join("");
+        return `
+        <div class="user-group">
+          <h3>${g.name} <span class="user-email">${g.email}</span></h3>
+          ${orderHtml}
+        </div>`;
+      })
+      .join("");
+
+    box.querySelectorAll("select[data-order]").forEach((sel) => {
+      sel.onchange = () => updateOrderStatus(sel.dataset.order, sel.value);
+    });
+  } catch (err) {
+    box.innerHTML = `<p class="empty">${err.message}</p>`;
   }
 }
 
@@ -253,6 +353,7 @@ function switchTab(name) {
   if (name === "cart") loadCart();
   if (name === "orders") loadOrders();
   if (name === "products") loadProducts();
+  if (name === "admin") loadAdminOrders();
 }
 
 // ===== 로그인 모달 =====

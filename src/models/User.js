@@ -21,6 +21,12 @@ const userSchema = new mongoose.Schema(
       required: [true, "비밀번호는 필수입니다."],
       minlength: [6, "비밀번호는 6자 이상이어야 합니다."],
     },
+    // 권한: 일반 사용자(user) 또는 관리자(admin)
+    role: {
+      type: String,
+      enum: ["user", "admin"],
+      default: "user",
+    },
   },
   { timestamps: true }
 );

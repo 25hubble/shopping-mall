@@ -71,9 +71,44 @@ export async function getMyOrders(req, res, next) {
   }
 }
 
+// [POST] /api/orders/:id/pay - 결제 처리 (모의 결제)
+// 실제 결제 연동(토스/카카오페이 등) 대신, 결제 성공을 흉내내어 상태를 paid로 바꾼다.
+export async function payOrder(req, res, next) {
+  try {
+    const { paymentMethod = "card" } = req.body;
+
+    const order = await Order.findById(req.params.id);
+    if (!order) {
+      return res.status(404).json({ message: "주문을 찾을 수 없습니다." });
+    }
+
+    // 본인 주문만 결제 가능
+    if (order.user.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: "권한이 없습니다." });
+    }
+
+    // 이미 결제(또는 그 이후 단계)된 주문은 다시 결제 불가
+    if (order.status !== "pending") {
+      return res
+        .status(400)
+        .json({ message: "결제할 수 없는 주문 상태입니다." });
+    }
+
+    // --- 여기서 실제로는 결제 게이트웨이(PG)를 호출 ---
+    // 학습용이므로 항상 성공 처리
+    order.status = "paid";
+    order.paidAt = new Date();
+    order.paymentMethod = paymentMethod;
+    await order.save();
+
+    res.json({ message: "결제가 완료되었습니다.", order });
+  } catch (err) {
+    next(err);
+  }
+}
+
 // [PATCH] /api/orders/:id/status - 주문 상태 변경  { status }
-// 실무에선 보통 관리자(admin)만 배송 상태를 바꾸지만, 여기선 학습용으로
-// 본인 주문에 한해 상태를 변경할 수 있게 한다.
+// 본인 주문이거나 관리자(admin)인 경우에만 변경할 수 있다.
 export async function updateOrderStatus(req, res, next) {
   try {
     const { status } = req.body;
@@ -89,14 +124,29 @@ export async function updateOrderStatus(req, res, next) {
       return res.status(404).json({ message: "주문을 찾을 수 없습니다." });
     }
 
-    // 본인 주문인지 확인
-    if (order.user.toString() !== req.user._id.toString()) {
+    // 본인 주문이거나 관리자만 허용
+    const isOwner = order.user.toString() === req.user._id.toString();
+    const isAdmin = req.user.role === "admin";
+    if (!isOwner && !isAdmin) {
       return res.status(403).json({ message: "권한이 없습니다." });
     }
 
     order.status = status;
     await order.save();
     res.json(order);
+  } catch (err) {
+    next(err);
+  }
+}
+
+// [GET] /api/orders/all - (관리자) 모든 유저의 주문 조회
+export async function getAllOrders(req, res, next) {
+  try {
+    // user 정보(이름/이메일)도 함께 채워서 반환
+    const orders = await Order.find()
+      .populate("user", "name email")
+      .sort({ createdAt: -1 });
+    res.json(orders);
   } catch (err) {
     next(err);
   }

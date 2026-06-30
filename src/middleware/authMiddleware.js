@@ -31,3 +31,11 @@ export async function protect(req, res, next) {
     return res.status(401).json({ message: "유효하지 않은 토큰입니다." });
   }
 }
+
+// 관리자만 통과시키는 미들웨어 (반드시 protect 다음에 사용)
+export function admin(req, res, next) {
+  if (req.user && req.user.role === "admin") {
+    return next();
+  }
+  return res.status(403).json({ message: "관리자 권한이 필요합니다." });
+}
