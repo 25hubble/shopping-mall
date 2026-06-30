@@ -242,6 +242,24 @@ select {
   font-size: 13px;
 }
 
+/* 배송지(고객) 정보 */
+.ship-info {
+  margin-top: 8px;
+  padding: 10px 12px;
+  background: #f9fafb;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #374151;
+  line-height: 1.6;
+}
+.ship-info .memo {
+  color: #888;
+}
+.ship-info.no-info {
+  color: #aaa;
+  font-style: italic;
+}
+
 /* 모달 */
 .modal {
   position: fixed;

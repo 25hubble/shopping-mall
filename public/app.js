@@ -173,9 +173,22 @@ async function removeFromCart(productId) {
   }
 }
 
-async function checkout() {
+// 주문하기 버튼 → 배송지 입력 모달 열기
+function openCheckout() {
+  // 받는 사람 기본값을 로그인한 이름으로 채워줌
+  const form = document.getElementById("shipping-form");
+  if (user && !form.recipient.value) form.recipient.value = user.name;
+  document.getElementById("checkout-modal").classList.remove("hidden");
+}
+
+// 배송지 정보와 함께 실제 주문 생성
+async function placeOrder(shippingInfo) {
   try {
-    await api("/orders", { method: "POST" });
+    await api("/orders", {
+      method: "POST",
+      body: JSON.stringify({ shippingInfo }),
+    });
+    document.getElementById("checkout-modal").classList.add("hidden");
     toast("주문이 완료되었습니다! 🎉");
     loadCart();
     loadProducts(); // 재고 갱신
@@ -312,6 +325,19 @@ async function loadAdminOrders() {
                   `<option value="${s}" ${s === o.status ? "selected" : ""}>${STATUS_LABEL[s]}</option>`
               )
               .join("");
+            // 배송지(고객) 정보
+            const s = o.shippingInfo || {};
+            const shipping = s.recipient
+              ? `<div class="ship-info">
+                   📦 <strong>${s.recipient}</strong> · ${s.phone || "-"}<br />
+                   ${s.address || "-"}${s.memo ? ` <span class="memo">(${s.memo})</span>` : ""}
+                 </div>`
+              : `<div class="ship-info no-info">배송지 정보 없음 (이전 주문)</div>`;
+            // 결제완료(paid) 상태면 "배송 시작" 버튼 강조
+            const shipBtn =
+              o.status === "paid"
+                ? `<button class="pay-btn" data-ship="${o._id}">📦 배송 시작</button>`
+                : "";
             return `
             <div class="order">
               <div class="order-head">
@@ -319,9 +345,13 @@ async function loadAdminOrders() {
                 <span class="badge ${o.status}">${STATUS_LABEL[o.status]}</span>
               </div>
               <div>${itemsText}</div>
-              <div style="margin-top:8px;display:flex;justify-content:space-between;align-items:center;">
+              ${shipping}
+              <div style="margin-top:8px;display:flex;justify-content:space-between;align-items:center;gap:8px;">
                 <strong>${o.totalPrice.toLocaleString()}원</strong>
-                <select data-order="${o._id}">${options}</select>
+                <div style="display:flex;gap:8px;align-items:center;">
+                  ${shipBtn}
+                  <select data-order="${o._id}">${options}</select>
+                </div>
               </div>
             </div>`;
           })
@@ -336,6 +366,9 @@ async function loadAdminOrders() {
 
     box.querySelectorAll("select[data-order]").forEach((sel) => {
       sel.onchange = () => updateOrderStatus(sel.dataset.order, sel.value);
+    });
+    box.querySelectorAll("button[data-ship]").forEach((btn) => {
+      btn.onclick = () => updateOrderStatus(btn.dataset.ship, "shipped");
     });
   } catch (err) {
     box.innerHTML = `<p class="empty">${err.message}</p>`;
@@ -400,8 +433,22 @@ function init() {
     t.onclick = () => switchAuthForm(t.dataset.form);
   });
 
-  // 주문 버튼
-  document.getElementById("checkout-btn").onclick = checkout;
+  // 주문 버튼 → 배송지 입력 모달
+  document.getElementById("checkout-btn").onclick = openCheckout;
+  document.getElementById("checkout-close").onclick = () =>
+    document.getElementById("checkout-modal").classList.add("hidden");
+
+  // 배송지 폼 제출 → 주문 생성
+  document.getElementById("shipping-form").onsubmit = (e) => {
+    e.preventDefault();
+    const f = e.target;
+    placeOrder({
+      recipient: f.recipient.value,
+      phone: f.phone.value,
+      address: f.address.value,
+      memo: f.memo.value,
+    });
+  };
 
   // 로그인 폼
   document.getElementById("login-form").onsubmit = async (e) => {

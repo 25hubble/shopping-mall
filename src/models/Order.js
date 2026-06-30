@@ -25,6 +25,15 @@ const orderSchema = new mongoose.Schema(
       type: Number,
       required: true,
     },
+    // 배송지 정보 (주문 시 입력받음). 관리자가 이 정보를 보고 배송한다.
+    // 기존 주문 호환을 위해 스키마에서는 required로 강제하지 않고,
+    // 실제 필수 검증은 주문 생성 컨트롤러에서 한다.
+    shippingInfo: {
+      recipient: { type: String }, // 받는 사람
+      phone: { type: String }, // 연락처
+      address: { type: String }, // 주소
+      memo: { type: String, default: "" }, // 배송 메모
+    },
     status: {
       type: String,
       enum: ["pending", "paid", "shipped", "delivered", "cancelled"],

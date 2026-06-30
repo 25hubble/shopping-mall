@@ -5,6 +5,14 @@ import Product from "../models/Product.js";
 // [POST] /api/orders - 주문하기(결제). 내 장바구니를 주문으로 변환한다.
 export async function createOrder(req, res, next) {
   try {
+    // 0) 배송지 정보 검증 (받는 사람/연락처/주소는 필수)
+    const { recipient, phone, address, memo = "" } = req.body.shippingInfo || {};
+    if (!recipient || !phone || !address) {
+      return res.status(400).json({
+        message: "배송지 정보(받는 사람, 연락처, 주소)를 모두 입력해주세요.",
+      });
+    }
+
     // 1) 장바구니를 상품 정보까지 채워서 가져오기
     const cart = await Cart.findOne({ user: req.user._id }).populate(
       "items.product"
@@ -42,11 +50,12 @@ export async function createOrder(req, res, next) {
       });
     }
 
-    // 4) 주문 생성
+    // 4) 주문 생성 (배송지 정보 포함)
     const order = await Order.create({
       user: req.user._id,
       items: orderItems,
       totalPrice,
+      shippingInfo: { recipient, phone, address, memo },
     });
 
     // 5) 장바구니 비우기
