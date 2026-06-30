@@ -1,0 +1,15 @@
+# Render 배포 설정 (Blueprint)
+# Render 대시보드에서 이 레포를 연결하면 이 파일을 읽어 자동 구성됩니다.
+services:
+  - type: web
+    name: shopping-mall
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      # 아래 두 값은 보안상 파일에 넣지 않고 Render 대시보드에서 직접 입력합니다.
+      - key: MONGO_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
