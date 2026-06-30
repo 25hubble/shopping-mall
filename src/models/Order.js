@@ -4,6 +4,11 @@ import mongoose from "mongoose";
 // (나중에 상품 가격이 바뀌어도 과거 주문 기록은 그대로 유지되도록)
 const orderSchema = new mongoose.Schema(
   {
+    // 사람이 읽기 쉬운 주문번호(인보이스 번호). 예: INV-20260630-A1B2C3
+    orderNumber: {
+      type: String,
+      unique: true,
+    },
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",

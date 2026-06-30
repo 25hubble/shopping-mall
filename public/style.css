@@ -411,6 +411,76 @@ select {
   font-size: 15px;
 }
 
+/* 주문서(인보이스) 모달 */
+.invoice-box {
+  width: 460px;
+  max-width: 92vw;
+  max-height: 88vh;
+  overflow-y: auto;
+}
+.invoice-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.invoice-head h3 {
+  font-size: 18px;
+}
+.invoice-meta {
+  background: #f9fafb;
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  font-size: 13px;
+}
+.invoice-meta div {
+  display: flex;
+  justify-content: space-between;
+  padding: 3px 0;
+}
+.invoice-meta span {
+  color: #888;
+}
+.invoice-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+.invoice-table th,
+.invoice-table td {
+  padding: 8px 6px;
+  border-bottom: 1px solid #eee;
+  text-align: left;
+}
+.invoice-table .num {
+  text-align: right;
+}
+.invoice-table tfoot td {
+  border-top: 2px solid #ddd;
+  border-bottom: none;
+  font-weight: 600;
+  padding-top: 10px;
+}
+.invoice-table .total {
+  color: #2563eb;
+  font-size: 16px;
+}
+.invoice-ship {
+  font-size: 13px;
+  color: #374151;
+  line-height: 1.6;
+}
+.invoice-ship h4 {
+  font-size: 13px;
+  color: #888;
+  margin-bottom: 6px;
+}
+.invoice-ship .memo {
+  color: #888;
+}
+
 /* 토스트 */
 .toast {
   position: fixed;

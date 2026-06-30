@@ -11,6 +11,60 @@ const STATUS_LABEL = {
   cancelled: "취소됨",
 };
 
+const PAYMENT_LABEL = {
+  card: "신용/체크카드",
+  kakao: "카카오페이",
+  bank: "무통장입금",
+};
+
+// ===== 주문서(인보이스) 보기 =====
+async function showInvoice(orderId) {
+  try {
+    const o = await api(`/orders/${orderId}`);
+    const date = new Date(o.createdAt).toLocaleString("ko-KR");
+    const s = o.shippingInfo || {};
+    const rows = o.items
+      .map(
+        (i) => `
+        <tr>
+          <td>${i.name}</td>
+          <td class="num">${i.price.toLocaleString()}원</td>
+          <td class="num">${i.quantity}</td>
+          <td class="num">${(i.price * i.quantity).toLocaleString()}원</td>
+        </tr>`
+      )
+      .join("");
+
+    document.getElementById("invoice-body").innerHTML = `
+      <div class="invoice-head">
+        <h3>주문서 / 영수증</h3>
+        <span class="badge ${o.status}">${STATUS_LABEL[o.status]}</span>
+      </div>
+      <div class="invoice-meta">
+        <div><span>주문번호</span><strong>${o.orderNumber || o._id}</strong></div>
+        <div><span>주문일시</span><strong>${date}</strong></div>
+        ${o.user && o.user.email ? `<div><span>주문자</span><strong>${o.user.name} (${o.user.email})</strong></div>` : ""}
+        <div><span>결제수단</span><strong>${PAYMENT_LABEL[o.paymentMethod] || "-"}</strong></div>
+      </div>
+      <table class="invoice-table">
+        <thead><tr><th>상품</th><th class="num">단가</th><th class="num">수량</th><th class="num">금액</th></tr></thead>
+        <tbody>${rows}</tbody>
+        <tfoot><tr><td colspan="3">총 결제금액</td><td class="num total">${o.totalPrice.toLocaleString()}원</td></tr></tfoot>
+      </table>
+      <div class="invoice-ship">
+        <h4>배송지</h4>
+        ${
+          s.recipient
+            ? `${s.recipient} · ${s.phone}<br />${s.address}${s.memo ? `<br /><span class="memo">메모: ${s.memo}</span>` : ""}`
+            : "정보 없음"
+        }
+      </div>`;
+    document.getElementById("invoice-modal").classList.remove("hidden");
+  } catch (err) {
+    toast(err.message);
+  }
+}
+
 // ===== API 호출 헬퍼 =====
 async function api(path, options = {}) {
   const headers = { "Content-Type": "application/json", ...options.headers };
@@ -281,6 +335,8 @@ async function placeOrderAndPay(shippingInfo, paymentMethod) {
     loadProducts(); // 재고 갱신
     switchTab("orders");
     loadOrders();
+    // 결제 직후 주문서(인보이스)를 바로 보여줌
+    showInvoice(order._id);
   } catch (err) {
     toast(err.message);
   } finally {
@@ -322,13 +378,16 @@ async function loadOrders() {
         return `
         <div class="order">
           <div class="order-head">
-            <span>${date}</span>
+            <span>${o.orderNumber || date}</span>
             <span class="badge ${o.status}">${STATUS_LABEL[o.status]}</span>
           </div>
           <div>${itemsText}</div>
-          <div style="margin-top:8px;display:flex;justify-content:space-between;align-items:center;">
+          <div style="margin-top:8px;display:flex;justify-content:space-between;align-items:center;gap:8px;">
             <strong>${o.totalPrice.toLocaleString()}원</strong>
-            ${action}
+            <div style="display:flex;gap:8px;align-items:center;">
+              <button class="ghost" data-invoice="${o._id}">주문서</button>
+              ${action}
+            </div>
           </div>
         </div>`;
       })
@@ -339,6 +398,9 @@ async function loadOrders() {
     });
     box.querySelectorAll("button[data-pay]").forEach((btn) => {
       btn.onclick = () => payOrder(btn.dataset.pay);
+    });
+    box.querySelectorAll("button[data-invoice]").forEach((btn) => {
+      btn.onclick = () => showInvoice(btn.dataset.invoice);
     });
   } catch (err) {
     box.innerHTML = `<p class="empty">${err.message}</p>`;
@@ -439,6 +501,7 @@ async function loadAdminOrders() {
               <div style="margin-top:8px;display:flex;justify-content:space-between;align-items:center;gap:8px;">
                 <strong>${o.totalPrice.toLocaleString()}원</strong>
                 <div style="display:flex;gap:8px;align-items:center;">
+                  <button class="ghost" data-invoice="${o._id}">주문서</button>
                   ${shipBtn}
                   <select data-order="${o._id}">${options}</select>
                 </div>
@@ -459,6 +522,9 @@ async function loadAdminOrders() {
     });
     box.querySelectorAll("button[data-ship]").forEach((btn) => {
       btn.onclick = () => updateOrderStatus(btn.dataset.ship, "shipped");
+    });
+    box.querySelectorAll("button[data-invoice]").forEach((btn) => {
+      btn.onclick = () => showInvoice(btn.dataset.invoice);
     });
   } catch (err) {
     box.innerHTML = `<p class="empty">${err.message}</p>`;
@@ -516,6 +582,10 @@ function init() {
   document.querySelectorAll(".tab").forEach((t) => {
     t.onclick = () => switchTab(t.dataset.tab);
   });
+
+  // 주문서(인보이스) 모달 닫기
+  document.getElementById("invoice-close").onclick = () =>
+    document.getElementById("invoice-modal").classList.add("hidden");
 
   // 모달
   document.getElementById("modal-close").onclick = closeModal;

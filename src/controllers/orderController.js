@@ -58,6 +58,12 @@ export async function createOrder(req, res, next) {
       shippingInfo: { recipient, phone, address, memo },
     });
 
+    // 주문번호(인보이스 번호) 부여: INV-날짜-주문ID끝6자리
+    const d = order.createdAt;
+    const dateStr = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
+    order.orderNumber = `INV-${dateStr}-${order._id.toString().slice(-6).toUpperCase()}`;
+    await order.save();
+
     // 5) 장바구니 비우기
     cart.items = [];
     await cart.save();
@@ -75,6 +81,31 @@ export async function getMyOrders(req, res, next) {
       createdAt: -1,
     });
     res.json(orders);
+  } catch (err) {
+    next(err);
+  }
+}
+
+// [GET] /api/orders/:id - 주문 1건 상세 조회 (주문서/인보이스용)
+// 본인 주문이거나 관리자만 볼 수 있다.
+export async function getOrderById(req, res, next) {
+  try {
+    const order = await Order.findById(req.params.id).populate(
+      "user",
+      "name email"
+    );
+    if (!order) {
+      return res.status(404).json({ message: "주문을 찾을 수 없습니다." });
+    }
+
+    const ownerId = order.user._id ? order.user._id.toString() : order.user.toString();
+    const isOwner = ownerId === req.user._id.toString();
+    const isAdmin = req.user.role === "admin";
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({ message: "권한이 없습니다." });
+    }
+
+    res.json(order);
   } catch (err) {
     next(err);
   }
