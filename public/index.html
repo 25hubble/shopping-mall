@@ -79,17 +79,50 @@
       </div>
     </div>
 
-    <!-- 배송지 입력 모달 (주문하기 시) -->
+    <!-- 체크아웃(주문/결제) 모달 -->
     <div id="checkout-modal" class="modal hidden">
-      <div class="modal-box">
+      <div class="modal-box checkout-box">
         <button id="checkout-close" class="modal-close">✕</button>
-        <h3 style="margin-bottom:16px;">배송지 정보</h3>
-        <form id="shipping-form" class="auth-form active">
-          <input type="text" name="recipient" placeholder="받는 사람" required />
-          <input type="tel" name="phone" placeholder="연락처 (예: 010-1234-5678)" required />
-          <input type="text" name="address" placeholder="주소" required />
-          <input type="text" name="memo" placeholder="배송 메모 (선택)" />
-          <button type="submit" class="primary">주문 완료하기</button>
+        <h3 style="margin-bottom:16px;">주문 / 결제</h3>
+
+        <!-- 주문 요약 -->
+        <div class="checkout-section">
+          <h4>주문 상품</h4>
+          <div id="checkout-summary"></div>
+          <div class="checkout-total">
+            총 결제금액 <strong id="checkout-total">0원</strong>
+          </div>
+        </div>
+
+        <form id="checkout-form">
+          <!-- 배송지 -->
+          <div class="checkout-section">
+            <h4>배송지</h4>
+            <input type="text" name="recipient" placeholder="받는 사람" required />
+            <input type="tel" name="phone" placeholder="연락처 (예: 010-1234-5678)" required />
+            <input type="text" name="address" placeholder="주소" required />
+            <input type="text" name="memo" placeholder="배송 메모 (선택)" />
+          </div>
+
+          <!-- 결제 수단 -->
+          <div class="checkout-section">
+            <h4>결제 수단</h4>
+            <div class="pay-methods">
+              <label><input type="radio" name="payment" value="card" checked /> 💳 신용/체크카드</label>
+              <label><input type="radio" name="payment" value="kakao" /> 💛 카카오페이</label>
+              <label><input type="radio" name="payment" value="bank" /> 🏦 무통장입금</label>
+            </div>
+            <!-- 카드 정보 (모의 입력 — 실제로 서버에 전송하지 않음) -->
+            <div id="card-fields" class="card-fields">
+              <input type="text" name="cardNumber" placeholder="카드번호 0000-0000-0000-0000" />
+              <div style="display:flex; gap:8px;">
+                <input type="text" name="cardExp" placeholder="MM/YY" style="flex:1;" />
+                <input type="text" name="cardCvc" placeholder="CVC" style="flex:1;" />
+              </div>
+            </div>
+          </div>
+
+          <button type="submit" class="primary" id="pay-submit">결제하기</button>
         </form>
       </div>
     </div>

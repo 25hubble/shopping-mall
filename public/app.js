@@ -173,29 +173,82 @@ async function removeFromCart(productId) {
   }
 }
 
-// 주문하기 버튼 → 배송지 입력 모달 열기
-function openCheckout() {
+// 주문하기 버튼 → 체크아웃(주문요약 + 배송지 + 결제) 모달 열기
+async function openCheckout() {
+  if (!user) {
+    toast("로그인이 필요합니다.");
+    openModal();
+    return;
+  }
+  // 현재 장바구니를 불러와 주문 요약 표시
+  const cart = await api("/cart").catch(() => null);
+  const items = (cart && cart.items) || [];
+  if (items.length === 0) {
+    toast("장바구니가 비어 있습니다.");
+    return;
+  }
+
+  let total = 0;
+  document.getElementById("checkout-summary").innerHTML = items
+    .map((it) => {
+      const p = it.product;
+      const lineTotal = p.price * it.quantity;
+      total += lineTotal;
+      return `<div class="sum-line"><span>${p.name} × ${it.quantity}</span><span>${lineTotal.toLocaleString()}원</span></div>`;
+    })
+    .join("");
+  document.getElementById("checkout-total").textContent =
+    total.toLocaleString() + "원";
+
+  const btn = document.getElementById("pay-submit");
+  btn.textContent = `${total.toLocaleString()}원 결제하기`;
+
   // 받는 사람 기본값을 로그인한 이름으로 채워줌
-  const form = document.getElementById("shipping-form");
+  const form = document.getElementById("checkout-form");
   if (user && !form.recipient.value) form.recipient.value = user.name;
+
+  toggleCardFields();
   document.getElementById("checkout-modal").classList.remove("hidden");
 }
 
-// 배송지 정보와 함께 실제 주문 생성
-async function placeOrder(shippingInfo) {
+// 결제 수단에 따라 카드 입력란 표시/숨김
+function toggleCardFields() {
+  const method = document.querySelector('input[name="payment"]:checked').value;
+  document
+    .getElementById("card-fields")
+    .classList.toggle("hidden", method !== "card");
+}
+
+// 장바구니 전체를 주문 1건으로 만들고 곧바로 결제까지 처리하는 통합 흐름
+async function placeOrderAndPay(shippingInfo, paymentMethod) {
+  const btn = document.getElementById("pay-submit");
+  const label = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = "결제 처리 중...";
   try {
-    await api("/orders", {
+    // 1) 주문 생성 (장바구니의 모든 상품 → 주문 1건)
+    const order = await api("/orders", {
       method: "POST",
       body: JSON.stringify({ shippingInfo }),
     });
+    // 2) 곧바로 결제 처리 (모의 결제)
+    await api(`/orders/${order._id}/pay`, {
+      method: "POST",
+      body: JSON.stringify({ paymentMethod }),
+    });
+
     document.getElementById("checkout-modal").classList.add("hidden");
-    toast("주문이 완료되었습니다! 🎉");
+    document.getElementById("checkout-form").reset();
+    toast("결제가 완료되어 주문이 접수되었습니다! 🎉");
     loadCart();
     loadProducts(); // 재고 갱신
     switchTab("orders");
     loadOrders();
   } catch (err) {
     toast(err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = label;
   }
 }
 
@@ -433,21 +486,30 @@ function init() {
     t.onclick = () => switchAuthForm(t.dataset.form);
   });
 
-  // 주문 버튼 → 배송지 입력 모달
+  // 주문 버튼 → 체크아웃 모달
   document.getElementById("checkout-btn").onclick = openCheckout;
   document.getElementById("checkout-close").onclick = () =>
     document.getElementById("checkout-modal").classList.add("hidden");
 
-  // 배송지 폼 제출 → 주문 생성
-  document.getElementById("shipping-form").onsubmit = (e) => {
+  // 결제 수단 선택 시 카드 입력란 토글
+  document.querySelectorAll('input[name="payment"]').forEach((r) => {
+    r.onchange = toggleCardFields;
+  });
+
+  // 체크아웃 폼 제출 → 주문 생성 + 결제 (한 번에)
+  document.getElementById("checkout-form").onsubmit = (e) => {
     e.preventDefault();
     const f = e.target;
-    placeOrder({
-      recipient: f.recipient.value,
-      phone: f.phone.value,
-      address: f.address.value,
-      memo: f.memo.value,
-    });
+    const paymentMethod = f.payment.value;
+    placeOrderAndPay(
+      {
+        recipient: f.recipient.value,
+        phone: f.phone.value,
+        address: f.address.value,
+        memo: f.memo.value,
+      },
+      paymentMethod
+    );
   };
 
   // 로그인 폼

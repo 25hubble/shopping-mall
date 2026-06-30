@@ -318,6 +318,76 @@ select {
   font-size: 14px;
 }
 
+/* 체크아웃 모달 */
+.checkout-box {
+  width: 420px;
+  max-width: 92vw;
+  max-height: 88vh;
+  overflow-y: auto;
+}
+.checkout-section {
+  margin-bottom: 18px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #eee;
+}
+.checkout-section h4 {
+  font-size: 14px;
+  margin-bottom: 10px;
+  color: #374151;
+}
+.checkout-section input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+#checkout-summary .sum-line {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  padding: 4px 0;
+  color: #444;
+}
+.checkout-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+  font-size: 15px;
+}
+.checkout-total strong {
+  font-size: 19px;
+  color: #2563eb;
+}
+.pay-methods {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.pay-methods label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  cursor: pointer;
+}
+.card-fields {
+  background: #f9fafb;
+  padding: 12px;
+  border-radius: 8px;
+}
+.card-fields.hidden {
+  display: none;
+}
+#pay-submit {
+  width: 100%;
+  padding: 13px;
+  font-size: 15px;
+}
+
 /* 토스트 */
 .toast {
   position: fixed;
