@@ -144,6 +144,29 @@ button.ghost {
   font-size: 13px;
 }
 
+/* 수량 입력 */
+.qty-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.qty-row .primary {
+  flex: 1;
+}
+.qty-input {
+  width: 56px;
+  padding: 8px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+  text-align: center;
+}
+.cart-qty {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
 /* 장바구니 / 주문 항목 */
 .line-item,
 .order {

@@ -82,16 +82,27 @@ async function loadProducts() {
         <span class="desc">${p.description || ""}</span>
         <span class="price">${p.price.toLocaleString()}원</span>
         <span class="stock">재고 ${p.stock}개</span>
-        <button class="primary" data-id="${p._id}" ${p.stock === 0 ? "disabled" : ""}>
-          ${p.stock === 0 ? "품절" : "장바구니 담기"}
-        </button>
+        ${
+          p.stock === 0
+            ? `<button class="primary" disabled>품절</button>`
+            : `<div class="qty-row">
+                 <input type="number" class="qty-input" data-qty="${p._id}"
+                        value="1" min="1" max="${p.stock}" />
+                 <button class="primary" data-id="${p._id}">담기</button>
+               </div>`
+        }
       </div>`
       )
       .join("");
 
-    // 담기 버튼 이벤트
+    // 담기 버튼 이벤트: 입력한 수량만큼 담기
     list.querySelectorAll("button[data-id]").forEach((btn) => {
-      btn.onclick = () => addToCart(btn.dataset.id);
+      btn.onclick = () => {
+        const input = list.querySelector(`input[data-qty="${btn.dataset.id}"]`);
+        let qty = parseInt(input.value, 10);
+        if (!qty || qty < 1) qty = 1;
+        addToCart(btn.dataset.id, qty);
+      };
     });
   } catch (err) {
     list.innerHTML = `<p class="empty">상품을 불러오지 못했습니다: ${err.message}</p>`;
@@ -99,7 +110,7 @@ async function loadProducts() {
 }
 
 // ===== 장바구니 =====
-async function addToCart(productId) {
+async function addToCart(productId, quantity = 1) {
   if (!user) {
     toast("로그인이 필요합니다.");
     openModal();
@@ -108,9 +119,9 @@ async function addToCart(productId) {
   try {
     await api("/cart", {
       method: "POST",
-      body: JSON.stringify({ productId, quantity: 1 }),
+      body: JSON.stringify({ productId, quantity }),
     });
-    toast("장바구니에 담았습니다.");
+    toast(`장바구니에 ${quantity}개 담았습니다.`);
     loadCart();
   } catch (err) {
     toast(err.message);
@@ -145,9 +156,13 @@ async function loadCart() {
         <div class="line-item">
           <div>
             <strong>${p.name}</strong><br />
-            <small>${p.price.toLocaleString()}원 × ${item.quantity}개</small>
+            <small>${p.price.toLocaleString()}원 · 합계 ${(p.price * item.quantity).toLocaleString()}원</small>
           </div>
-          <button class="ghost" data-remove="${p._id}">삭제</button>
+          <div class="cart-qty">
+            <input type="number" class="qty-input" data-cartqty="${p._id}"
+                   value="${item.quantity}" min="1" max="${p.stock}" />
+            <button class="ghost" data-remove="${p._id}">삭제</button>
+          </div>
         </div>`;
       })
       .join("");
@@ -158,8 +173,30 @@ async function loadCart() {
     box.querySelectorAll("button[data-remove]").forEach((btn) => {
       btn.onclick = () => removeFromCart(btn.dataset.remove);
     });
+    // 수량 입력 변경 → 정확한 개수로 지정
+    box.querySelectorAll("input[data-cartqty]").forEach((input) => {
+      input.onchange = () => {
+        let qty = parseInt(input.value, 10);
+        if (!qty || qty < 1) qty = 1;
+        updateCartQty(input.dataset.cartqty, qty);
+      };
+    });
   } catch (err) {
     box.innerHTML = `<p class="empty">${err.message}</p>`;
+  }
+}
+
+// 장바구니 상품 수량을 정확한 개수로 지정
+async function updateCartQty(productId, quantity) {
+  try {
+    await api(`/cart/${productId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ quantity }),
+    });
+    loadCart(); // 총액/표시 갱신
+  } catch (err) {
+    toast(err.message);
+    loadCart();
   }
 }
 

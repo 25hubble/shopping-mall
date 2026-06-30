@@ -50,6 +50,46 @@ export async function addToCart(req, res, next) {
   }
 }
 
+// [PATCH] /api/cart/:productId - 장바구니 상품의 수량을 "지정"(설정)  { quantity }
+// addToCart는 수량을 더하지만, 이건 정확한 개수로 덮어쓴다. 0이면 항목 삭제.
+export async function updateCartItem(req, res, next) {
+  try {
+    const qty = Number(req.body.quantity);
+    if (!Number.isInteger(qty) || qty < 0) {
+      return res
+        .status(400)
+        .json({ message: "수량은 0 이상의 정수여야 합니다." });
+    }
+
+    const cart = await Cart.findOne({ user: req.user._id });
+    if (!cart) {
+      return res.status(404).json({ message: "장바구니가 비어 있습니다." });
+    }
+
+    const item = cart.items.find(
+      (i) => i.product.toString() === req.params.productId
+    );
+    if (!item) {
+      return res.status(404).json({ message: "장바구니에 없는 상품입니다." });
+    }
+
+    if (qty === 0) {
+      // 0개로 지정하면 항목 제거
+      cart.items = cart.items.filter(
+        (i) => i.product.toString() !== req.params.productId
+      );
+    } else {
+      item.quantity = qty;
+    }
+
+    await cart.save();
+    await cart.populate("items.product");
+    res.json(cart);
+  } catch (err) {
+    next(err);
+  }
+}
+
 // [DELETE] /api/cart/:productId - 장바구니에서 특정 상품 빼기
 export async function removeFromCart(req, res, next) {
   try {
